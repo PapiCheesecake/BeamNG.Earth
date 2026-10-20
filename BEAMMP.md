@@ -1,24 +1,32 @@
 # BeamNG.Earth on BeamMP (EarthSync)
 
-This branch is **BeamNG.Earth 1.5.3-beta** plus **EarthSync**: players close to each other (within 5 km) share one
-world origin, so their tiles and cars line up; players further apart are ghosts to each other (their cars are hidden
-until they're close again).
+This fork is **BeamNG.Earth 1.5.3-beta** plus:
+- **EarthSync**: players close to each other (within 5 km) share one world origin, so their tiles and cars line up;
+  players further apart are ghosts to each other (their cars are hidden until they're close again).
+- **RHD sign fix**: in drive-on-the-left countries (UK, Ireland, Australia, Japan, ...) road signs and traffic lights
+  face the drivers instead of showing their backs.
+
+Both are in the mod itself: **one mod zip**, used with TecnaGamer's normal BeamNG.Earth `.exe`.
+
+**Download the mod zip:** [`beammp/BeamNG_Earth_153_MP.zip`](beammp/BeamNG_Earth_153_MP.zip) (open it, then
+**Download raw file**).
 
 ## Players
 
 ### Requirements
 
-1. **The same BeamNG.Earth version as the server.** Download the `.exe` from the **same release** of this fork as
-   the server's mod zip ([releases](https://github.com/PapiCheesecake/BeamNG.Earth/releases)), not TecnaGamer's
-   `.exe` and not an older or newer one. The `.exe` runs the companion that builds your world (it also has the RHD
-   sign fix); a different version doesn't match the server's mod.
+1. **The same BeamNG.Earth version as the server.** The server's mod zip is named after its version:
+   `BeamNG_Earth_153_MP.zip` is **1.5.3-beta**. You need TecnaGamer's BeamNG.Earth `.exe` of **exactly that
+   version** (`BeamNG.Earth-1.5.3-beta.exe` from the [releases](https://github.com/TecnaGamer/BeamNG.Earth/releases)),
+   not an older or newer one. The `.exe` runs the companion that builds your world; a different version doesn't
+   match the server's mod.
 2. **A `BeamNG Earth` folder** (anywhere, e.g. your Desktop) with exactly these two files in it:
    - the BeamNG.Earth `.exe` (its name must start with `BeamNG` and contain `Earth`)
    - [`server.bat`](beammp/player/server.bat) from this repo
 
    ```
    BeamNG Earth/
-   ├── BeamNG.Earth-1.5.3-beta-mp.1.exe
+   ├── BeamNG.Earth-1.5.3-beta.exe
    └── server.bat
    ```
 
@@ -41,17 +49,17 @@ until they're close again).
 ## Server owners
 
 1. Put the client mod zip in `Resources/Client/`. Build it from this branch with
-   `python beammp/build_client_zip.py` (it writes `beammp/dist/BeamNG_Earth_153_MP.zip`), or download it from the
+   `python beammp/build_client_zip.py` (it writes `beammp/dist/BeamNG_Earth_153_MP.zip`), or use the zip from the
    release.
-2. Copy [`beammp/Server/EarthSync/`](beammp/Server/EarthSync) to `Resources/Server/EarthSync/` (the release has it as
-   `EarthSync_server_plugin.zip`).
+2. Copy [`beammp/Server/EarthSync/`](beammp/Server/EarthSync) to `Resources/Server/EarthSync/`.
 3. In `ServerConfig.toml`, set the map to BeamNG.Earth's level:
    ```toml
    Map = "/levels/beamng_earth/info.json"
    ```
 4. Start the server.
 
-Tell your players which release the server runs, so they download the matching `.exe`.
+Tell your players which BeamNG.Earth version the server runs (the number in the zip's name), so they download the
+matching `.exe`.
 
 ## What EarthSync changes
 
@@ -60,3 +68,12 @@ Tell your players which release the server runs, so they download the matching `
 - `mod/beamng_earth/lua/ge/extensions/beamngEarth/core.lua`: `adoptOrigin` (switch to another player's origin), and
   the mod only ever moves your own car, not another player's (spectating with Tab).
 - `beammp/Server/EarthSync/main.lua` (new): the server plugin that relays each player's position and origin.
+
+## What the RHD sign fix changes
+
+- `mod/beamng_earth/lua/ge/extensions/beamngEarth/trees.lua`: with left-hand traffic, stop, give-way and speed limit
+  signs (and the static traffic light booms) are turned 180 degrees to face the drivers.
+- `mod/beamng_earth/lua/ge/extensions/beamngEarth/navgraph.lua`: the working traffic lights move to the other kerb,
+  so the boom's arm reaches over the road, and face the drivers.
+- The driving side comes from the country's road rules that the companion already sends. If TecnaGamer fixes the
+  signs in the `.exe` itself one day, this fix must come out of the mod (it would turn them back).

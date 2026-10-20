@@ -377,12 +377,11 @@ def _signals(arms, approaches, nodes, left_hand=False, ring=None):
             q = np.array([jx, jy]) + u * (wide + STOP_BACK_M) + right * (spec.width / 4)
             phase = 0 if abs(float(u @ axis)) > 0.7 else 1
             # the head's prop where furniture.junction_props stands it (the switchable stock boom replaces it)
-            post = furniture.post_side(inc, furniture.G_SIGNAL if kind == "signal" else furniture.G_STOP, left_hand)
-            pp = np.array([jx, jy]) + u * (wide + 2.5) + post * (spec.width / 2 + 1.0)
+            pp = np.array([jx, jy]) + u * (wide + 2.5) + right * (spec.width / 2 + 1.0)
             app.append([nb, round(float(q[0]), 2), round(float(q[1]), 2), round(jz, 2),
                         round(float(inc[0]), 4), round(float(inc[1]), 4), phase,
                         round(float(pp[0]), 2), round(float(pp[1]), 2), round(jz + 0.15, 2),
-                        round(furniture._facing_yaw(inc), 1)])
+                        round(furniture._yaw(right[0], right[1]), 1)])
         if app:
             out.append({"j": name, "kind": kind, "app": app})
     return out

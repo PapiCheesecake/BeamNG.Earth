@@ -118,17 +118,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: out
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      # the fork's multiplayer files (BEAMMP.md): the server's client mod zip, the EarthSync plugin and server.bat
-      - name: BeamMP files
-        run: |
-          python beammp/build_client_zip.py
-          mkdir -p out/beammp
-          cp beammp/dist/*.zip out/beammp/
-          (cd beammp/Server && zip -qr ../../out/beammp/EarthSync_server_plugin.zip EarthSync)
-          cp beammp/player/server.bat out/beammp/
       - name: Publish v${{ needs.check.outputs.version }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -137,17 +126,14 @@ jobs:
           pre=""
           case "$v" in *preview*|*alpha*|*beta*|*rc*) pre="--prerelease";; esac
           cat > notes.md <<EOF
-          BeamNG.Earth with **EarthSync** (BeamMP multiplayer) and the **RHD sign fix** (signs and signals face their
-          drivers in drive-on-the-left countries). Read **BEAMMP.md** before playing on a BeamMP server.
+          **Download** the file for your system, run it, and it does the rest: it installs the mod into BeamNG.drive,
+          starts the world server and starts the game. Then pick **Freeroam > BeamNG.Earth**.
 
-          **Players (BeamMP):** download \`BeamNG.Earth-$v.exe\` and \`server.bat\` into one folder, delete
-          \`mods\\unpacked\\beamng_earth\` in your BeamNG user folder, run \`server.bat\`, then join with the BeamMP
-          launcher. Use the \`.exe\` from the same release as the server's mod zip.
+          - **Windows:** \`BeamNG.Earth-$v.exe\` (Windows may warn about an unknown app: More info > Run anyway)
+          - **Linux:** \`BeamNG.Earth-$v-x86_64.AppImage\` (make it executable: right-click > Properties, or
+            \`chmod +x\`). It starts the native game with the grass patch, no Steam launch options needed.
 
-          **Server owners:** \`BeamNG_Earth_*_MP.zip\` goes in \`Resources/Client/\`, the folder in
-          \`EarthSync_server_plugin.zip\` in \`Resources/Server/\`, and the map is \`/levels/beamng_earth/info.json\`.
-
-          **Single player:** run the \`.exe\` (Windows) or the AppImage (Linux) on its own, as with BeamNG.Earth.
+          Steam must be running. Closing the game stops the server. See the README for details.
           EOF
-          gh release create "v$v" out/linux/* out/windows/* out/beammp/* --target "$GITHUB_SHA" \
-            --title "BeamNG.Earth $v (EarthSync + RHD signs)" --notes-file notes.md --generate-notes $pre
+          gh release create "v$v" out/linux/* out/windows/* --target "$GITHUB_SHA" --title "BeamNG.Earth $v" \
+            --notes-file notes.md --generate-notes $pre

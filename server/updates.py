@@ -13,7 +13,7 @@ import sys
 
 import netfetch
 
-REPO = "PapiCheesecake/BeamNG.Earth"   # the fork: update notices and links point at its releases
+REPO = "TecnaGamer/BeamNG.Earth"
 VERSION_URL = f"https://raw.githubusercontent.com/{REPO}/main/VERSION"
 PAGE_URL = f"https://github.com/{REPO}/releases"      # the downloads (.exe / AppImage)
 # the folder with VERSION: above server/, or the packaged app's bundle (launcher.py frozen by PyInstaller, where

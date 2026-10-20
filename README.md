@@ -1,8 +1,9 @@
 # BeamNG.Earth
 
 > **PapiCheesecake's fork:** BeamNG.Earth 1.5.3-beta + **EarthSync** (BeamMP multiplayer) + the **RHD sign fix**
-> (signs and signals face their drivers in drive-on-the-left countries). To play on a BeamMP server, read
-> [BEAMMP.md](BEAMMP.md) first: you need the exact same BeamNG.Earth version as the server.
+> (signs and traffic lights face their drivers in drive-on-the-left countries), all in one mod zip:
+> [`beammp/BeamNG_Earth_153_MP.zip`](beammp/BeamNG_Earth_153_MP.zip). Read [BEAMMP.md](BEAMMP.md) first: you need the
+> exact same BeamNG.Earth version as the server.
 
 A 1:1 scale, streamed Earth for [BeamNG.drive](https://www.beamng.com/): drive anywhere on the
 planet on real elevation data and satellite imagery, with distance-based level of detail and the

@@ -68,14 +68,6 @@ def _yaw(dx, dy):
     return math.degrees(math.atan2(dy, dx)) % 360.0
 
 
-def _facing_yaw(travel):
-    """Yaw of a sign or signal for traffic travelling along `travel` (2,): the models face their drivers when their
-    local +x points to the right of travel (they were set up for right-hand traffic, post on the right kerb). A sign
-    standing on the left kerb (left-hand traffic) still needs this yaw: the yaw of its kerb side would turn it 180
-    degrees, its back to the drivers (the user, 2026-10-20, UK: stop, speed and signal heads all faced away)."""
-    return _yaw(travel[1], -travel[0])
-
-
 def _clear(p, others, own):
     import fast
     if isinstance(others, fast.Others):         # the Rust check (Python below without the module)
@@ -254,20 +246,11 @@ def _seg_dist_min(p, line):
     return float(np.hypot(*(a + t[:, None] * d - p).T).min())
 
 
-def post_side(inc, what, left_hand):
-    """Unit (2,) toward the kerb a junction control for traffic travelling along `inc` stands on: the kerb side of
-    the approach, except a signal boom with left-hand traffic (see junction_props)."""
-    right = np.array([inc[1], -inc[0]])
-    return -right if left_hand and what != G_SIGNAL else right
-
-
 def junction_props(roads, box, curb_h=0.15, left_hand=False):
     """Signals at urban junctions of two or more major roads (every arm), stop signs at urban junctions
     of minor roads (the minor arms meeting a major road; the stem of a T; half the four-way ones, hashed).
     Each on the approach's right (its left where traffic drives on the left), at the junction's edge, facing
-    the drivers who come in. Signals are booms whose arm reaches left from the post over the road: there is no
-    mirrored model, so with left-hand traffic they stand on the right kerb (the UK's offside signal) to keep the arm
-    over the carriageway."""
+    the drivers who come in."""
     x0, y0, x1, y1 = box
     rows = []
     junctions = _arms(roads)
@@ -290,12 +273,12 @@ def junction_props(roads, box, curb_h=0.15, left_hand=False):
         for (fid, spec, u, c, *_), what in put:
             # the approach comes in along -u; its right is (-u_y, u_x)... rotated: right of travel (-u)
             inc = -u
-            side = post_side(inc, what, left_hand)
-            q = _off_carriageways(c[:2], u, side, wide + 2.5, spec.width / 2 + 1.0, near)
+            right = np.array([inc[1], -inc[0]]) * (-1 if left_hand else 1)     # the kerb side of the approach
+            q = _off_carriageways(c[:2], u, right, wide + 2.5, spec.width / 2 + 1.0, near)
             if q is None or not (x0 - 20 <= q[0] < x1 + 20 and y0 - 20 <= q[1] < y1 + 20):
                 continue
             rows.append([what, round(float(q[0]), 2), round(float(q[1]), 2), round(float(c[2] + curb_h), 2),
-                         round(_facing_yaw(inc), 1), 1.0, 9.4 if what == G_SIGNAL else 3.0, 0.0])
+                         round(_yaw(right[0], right[1]), 1), 1.0, 9.4 if what == G_SIGNAL else 3.0, 0.0])
     return rows
 
 
@@ -337,7 +320,7 @@ def speed_signs(roads, speeds, box, left_hand=False, mph_signs=True):
             q = p[0][:2] + side * (spec.width / 2 + SIGN_OFF_M)
             if x0 <= q[0] < x1 and y0 <= q[1] < y1:
                 rows.append([group, round(float(q[0]), 2), round(float(q[1]), 2), round(float(p[0][2]), 2),
-                             round(_facing_yaw(f), 1), 1.0, 2.6, 0.0])
+                             round(_yaw(side[0], side[1]), 1), 1.0, 2.6, 0.0])
     return rows
 
 

@@ -113,21 +113,6 @@ class JunctionTest(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertLess(rows[0][1], 100.0, "on the left of northbound drivers (west side)")
 
-    def test_left_hand_signs_still_face_their_drivers(self):
-        # UK (2026-10-20): on the left kerb the stop sign must face the same way as on the right kerb, not turn its back
-        rs = [self.arm("e", "residential", 1, 0), self.arm("w", "residential", -1, 0), self.arm("s", "residential", 0, -1)]
-        rht = furniture.junction_props(rs, (0, 0, 256, 256))[0]
-        lht = furniture.junction_props(rs, (0, 0, 256, 256), left_hand=True)[0]
-        self.assertEqual(lht[0], furniture.G_STOP)
-        self.assertEqual(lht[4], rht[4], "same facing whichever kerb it stands on")
-
-    def test_left_hand_signals_stand_on_the_offside_facing_drivers(self):
-        # the boom's arm reaches left from its post: on the right kerb it stays over the road
-        rs = [self.arm(f"a{i}", "tertiary", dx, dy) for i, (dx, dy) in enumerate([(1, 0), (-1, 0), (0, 1), (0, -1)])]
-        rht = sorted(furniture.junction_props(rs, (0, 0, 256, 256)))
-        lht = sorted(furniture.junction_props(rs, (0, 0, 256, 256), left_hand=True))
-        self.assertEqual(rht, lht)
-
     def test_stop_on_the_stem_of_a_minor_t(self):
         rs = [self.arm("e", "residential", 1, 0), self.arm("w", "residential", -1, 0), self.arm("s", "residential", 0, -1)]
         rows = furniture.junction_props(rs, (0, 0, 256, 256))
@@ -139,14 +124,6 @@ class JunctionTest(unittest.TestCase):
 
 
 class SpeedSignTest(unittest.TestCase):
-    def test_left_hand_signs_on_the_left_facing_their_traffic(self):
-        r = road("t", "tertiary", True, x0=0.0, x1=400.0)
-        rht = furniture.speed_signs([r], {"t": 30.0 / 0.999}, (-50, -50, 450, 150))
-        lht = furniture.speed_signs([r], {"t": 30.0 / 0.999}, (-50, -50, 450, 150), left_hand=True)
-        e_r, e_l = min(rht, key=lambda x: x[1]), min(lht, key=lambda x: x[1])
-        self.assertGreater(e_l[2], 50.0, "eastbound traffic on the left: its kerb is the north side")
-        self.assertEqual(e_l[4], e_r[4], "facing eastbound drivers like the right-hand one")
-
     def test_a_sign_after_each_end_facing_its_traffic(self):
         r = road("t", "tertiary", True, x0=0.0, x1=400.0)
         rows = furniture.speed_signs([r], {"t": 30.0 / 0.999}, (-50, -50, 450, 150))
