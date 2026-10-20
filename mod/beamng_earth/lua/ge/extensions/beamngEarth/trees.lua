@@ -291,14 +291,36 @@ local function shapeOf(t, i, row)
   return s, sc
 end
 
-local function makeItem(fd, row, shape, sc, solid)
+-- RHD sign fix (PapiCheesecake fork): with left-hand traffic (the game's rightHandDrive: UK, Australia, Japan, ...)
+-- the world server stands road signs on the left kerb but turns them by their kerb side, so they show their backs to
+-- the drivers. Signs of these groups are turned 180 degrees here when M.leftHand (set by navgraph.lua from the
+-- country's road rules). Only for the stock world server: one with its own fix (server/furniture.py _facing_yaw)
+-- must not get this too.
+M.leftHand = false
+M.RHD_TURN = { stop = true, giveway = true, signal = true, speed30 = true, speed40 = true, speed50 = true,
+  speed60 = true, speed70 = true, speedk40 = true, speedk60 = true, speedk80 = true, speedk100 = true }
+
+-- Whether an item of group g is turned for left-hand traffic now.
+function M.rhdTurned(g)
+  return (M.leftHand and g and M.RHD_TURN[g]) and true or false
+end
+
+-- Left-hand traffic known or changed (navgraph.lua): the signs already standing are made again, turned.
+function M.setLeftHand(on)
+  on = on and true or false
+  if on == M.leftHand then return end
+  M.leftHand = on
+  M.refresh()
+end
+
+local function makeItem(fd, row, shape, sc, solid, turned)
   local d = itemType(shape, solid)
   if not d then M.errors = M.errors + 1; return nil end
   local m = MatrixF(true)
   -- setFromEuler turns clockwise (the engine's headings): a row's yaw (counter-clockwise from +x, the server's) is
   -- given negated. Positive, every prop was mirrored about the x axis: doors on north-south walls backwards, on
   -- diagonal walls askew, benches and lamps turned (read back in-game 2026-10-17: rows at 141.6 rendered at -141.6)
-  m:setFromEuler(vec3(0, 0, -math.rad(row[5] or 0)))
+  m:setFromEuler(vec3(0, 0, -math.rad((row[5] or 0) + (turned and 180 or 0))))
   m:setPosition(vec3(row[2], row[3], row[4]))
   local ok, it = pcall(function() return fd:createNewItem(d, m, sc) end)
   if not ok then M.errors = M.errors + 1; return nil end
@@ -341,7 +363,7 @@ function M.onRows(anchorId, tileKey, rows, groups)
   local old = tiles[key]
   local tx, ty = tostring(tileKey):match('(%-?%d+)_(%-?%d+)$')
   local t = { anchor = anchorId, rows = rows, groups = type(groups) == 'table' and groups or nil,
-    made = old and old.made or {}, solid = old and old.solid or {}, near = old and old.near,
+    made = old and old.made or {}, solid = old and old.solid or {}, turned = old and old.turned or {}, near = old and old.near,
     shapes = old and old.rows == rows and old.shapes or {}, scales = old and old.rows == rows and old.scales or {},
     madeShape = old and old.madeShape or {}, shown = old and old.shown or 0, forestId = old and old.forestId or nil,
     variant = M.tileVariant(key), cx = (tonumber(tx) or 0) * 256 + 128, cy = (tonumber(ty) or 0) * 256 + 128, drop = false }
@@ -525,13 +547,15 @@ function M.update(anchorId, player)
         -- an item something else stands in for (navgraph.lua's switchable signal heads)
         if g and M.suppress and M.suppress(g, row[2], row[3]) then r = 2 end
         local solid = near and not M.NO_COLLIDE[g or '']
-        if r < want and (not t.made[i] or (t.solid[i] == true) ~= solid) then
+        local turned = M.rhdTurned(g)
+        if r < want and (not t.made[i] or (t.solid[i] == true) ~= solid or (t.turned[i] == true) ~= turned) then
           local sh, sc = shapeOf(t, i, row)
           if budget <= 0 then t.pending = true; finish(); return end
           if allow(sh) then
-            if t.made[i] then removeItem(data(), t.made[i], t.madeShape[i]); budget = budget - 1 end  -- solid <-> not
-            t.made[i] = makeItem(data(), row, sh, sc, solid)
+            if t.made[i] then removeItem(data(), t.made[i], t.madeShape[i]); budget = budget - 1 end  -- solid <-> not, turned
+            t.made[i] = makeItem(data(), row, sh, sc, solid, turned)
             t.solid[i] = (t.made[i] and solid) or nil      -- true or nil
+            t.turned[i] = (t.made[i] and turned) or nil
             t.madeShape[i] = t.made[i] and sh or nil
             if solid then nearMade = true end
             budget = budget - 1
@@ -540,7 +564,7 @@ function M.update(anchorId, player)
           if budget <= 0 then t.pending = true; finish(); return end
           if allow(t.madeShape[i] or '') then
             removeItem(data(), t.made[i], t.madeShape[i])
-            t.made[i], t.solid[i], t.madeShape[i] = nil, nil, nil
+            t.made[i], t.solid[i], t.madeShape[i], t.turned[i] = nil, nil, nil, nil
             budget = budget - 1
           else t.pending = true end
         end
