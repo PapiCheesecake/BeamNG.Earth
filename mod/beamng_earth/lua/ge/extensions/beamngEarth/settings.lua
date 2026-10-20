@@ -494,6 +494,13 @@ function M.uiMapState()
     attribution = core and core.attribution and core.attribution() or '',
     creditsByArea = core and core.creditsByArea and core.creditsByArea() or nil,
     gps = require('beamngEarth/gps').status(),
+    -- EarthSync (BeamMP): the other players, by GPS (beamngEarthMP.players)
+    others = (function()
+      local mp = ext('beamngEarthMP')
+      if not (mp and mp.players) then return nil end
+      local okP, list = pcall(mp.players)
+      return okP and list or nil
+    end)(),
   }
 end
 

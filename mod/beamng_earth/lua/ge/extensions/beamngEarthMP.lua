@@ -108,7 +108,14 @@ local function onPeer(data)
     return
   end
   local p = peers[id] or {}
-  p.lat, p.lon = tonumber(f[3]), tonumber(f[4])
+  local lat, lon = tonumber(f[3]), tonumber(f[4])
+  -- the world map's arrow (M.players): the direction of travel since the last report, kept while standing still
+  if lat and lon and p.lat and p.lon then
+    local dn = (lat - p.lat) * 111320
+    local de = (lon - p.lon) * 111320 * math.cos(math.rad(lat))
+    if dn * dn + de * de > 4 then p.heading = math.deg(math.atan2(de, dn)) % 360 end
+  end
+  p.lat, p.lon = lat, lon
   p.alat, p.alon = tonumber(f[5]), tonumber(f[6])
   p.t = clock
   peers[id] = p
@@ -385,6 +392,31 @@ function M.onExtensionLoaded()
   math.randomseed(os.time() + math.floor((os.clock() or 0) * 1e6))
   token = string.format('%08x%08x', math.random(0, 0x7fffffff), math.random(0, 0x7fffffff))
   logI('EarthSync ' .. M.VERSION .. ' loaded')
+end
+
+-- A BeamMP player's name (BeamMP's MPVehicleGE), else "Player <id>".
+local function playerName(id)
+  local mp = rawget(_G, 'MPVehicleGE')
+  if mp and type(mp.getPlayers) == 'function' then
+    local ok, players = pcall(mp.getPlayers)
+    local pl = ok and type(players) == 'table' and players[id]
+    if type(pl) == 'table' and type(pl.name) == 'string' and pl.name ~= '' then return pl.name end
+  end
+  return 'Player ' .. tostring(id)
+end
+
+-- The other players for BeamNG.Earth's world map (settings.uiMapState): every one heard from, near or a ghost,
+-- by GPS. { { id, name, lat, lon, heading (deg clockwise from north, or nil), near (shares our origin) } }
+function M.players()
+  local out = {}
+  for id, p in pairs(peers) do
+    if id ~= myId and p.lat and p.lon then
+      out[#out + 1] = { id = id, name = playerName(id), lat = p.lat, lon = p.lon, heading = p.heading,
+        near = inGroup[id] and true or false }
+    end
+  end
+  table.sort(out, function(a, b) return a.id < b.id end)
+  return out
 end
 
 -- console: dump(beamngEarthMP.state())

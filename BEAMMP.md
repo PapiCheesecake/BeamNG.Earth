@@ -68,6 +68,8 @@ matching `.exe`.
 - `mod/beamng_earth/lua/ge/extensions/beamngEarth/core.lua`: `adoptOrigin` (switch to another player's origin), and
   the mod only ever moves your own car, not another player's (spectating with Tab).
 - `beammp/Server/EarthSync/main.lua` (new): the server plugin that relays each player's position and origin.
+- World map (`settings.lua`, `EarthMap.vue`): every other player shows as an orange arrow with their name, by GPS,
+  wherever they are; players beyond EarthSync's 5 km range (ghosts) are dimmed.
 
 ## What the RHD sign fix changes
 
