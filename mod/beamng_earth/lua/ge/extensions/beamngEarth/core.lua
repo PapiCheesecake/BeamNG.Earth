@@ -180,6 +180,26 @@ end
 
 local function hypot(x, y) return math.sqrt(x * x + y * y) end
 
+-- EarthSync (BeamMP): the car the mod treats as the player's. With BeamMP the game's player vehicle can be another
+-- player's car (Tab, spectating): then our own car (the last one we were in) stays the player's, so the mod never
+-- holds, places or teleports someone else's car, and our ground stays under our car. nil if we have none.
+local lastOwnId = nil
+local function playerVeh()
+  local veh = getPlayerVehicle(0)
+  if not veh then return nil end
+  local mp = rawget(_G, 'MPVehicleGE')
+  if mp and type(mp.getVehicleByGameID) == 'function' then
+    local ok, v = pcall(mp.getVehicleByGameID, veh:getID())
+    if ok and type(v) == 'table' and v.isLocal == false then
+      local find = rawget(_G, 'getObjectByID')
+      return (lastOwnId and find) and find(lastOwnId) or nil
+    end
+  end
+  lastOwnId = veh:getID()
+  return veh
+end
+M.playerVeh = playerVeh
+
 ------------------------------------------------------------------------------------------
 -- anchors
 
@@ -233,6 +253,27 @@ local function resyncHint()
   if pl then return follow.target(pl.x, pl.y, pl.vx, pl.vy) end
   if st.block then return st.block.cx, st.block.cy end
   return 0, 0
+end
+
+-- EarthSync (BeamMP): another player's origin. Terrain centre for a resync to ANOTHER origin: where
+-- terrain-follow would put it, in that origin's frame.
+local function adoptHint(lat, lon)
+  local pl = st.player
+  if not pl or not st.anchor then return resyncHint() end
+  local xf = st.anchor:transformTo(geodesy.newAnchor(lat, lon))
+  local nx, ny = xf:apply(pl.x, pl.y, pl.z)
+  return follow.target(nx, ny, pl.vx, pl.vy)
+end
+
+-- Re-register the world under the origin lat, lon (beamngEarthMP.lua: the group leader's): a resync to a
+-- different origin, which commitRebase applies like a distance rebase (the world and every vehicle move
+-- with the exact transform). False when it cannot be asked now (the caller tries again later).
+function M.adoptOrigin(lat, lon)
+  lat, lon = tonumber(lat), tonumber(lon)
+  if not lat or not lon or not st.active or not st.anchor or not st.player then return false end
+  if st.pending or st.rebasing or st.resync or st.paused then return false end
+  if math.abs(lat - st.anchor.lat) < 1e-7 and math.abs(lon - st.anchor.lon) < 1e-7 then return true end
+  return requestAnchor(lat, lon, 'resync', adoptHint(lat, lon))
 end
 
 -- R = I and t = 0 (a resync re-registers the same origin).
@@ -371,7 +412,7 @@ local function commitTeleport(msg)
   -- The player's old coordinates may now lie anywhere on the new terrain.
   -- Lift it above the new origin in this same frame (velocity zeroed as in spawn.lua:532-534)
   -- so physics never sees that; placePlayer() then sets it down properly.
-  local veh = getPlayerVehicle(0)
+  local veh = playerVeh()
   holdMotionBlur()
   if veh then
     veh:setClusterPosRelRot(-1, 0, 0, st.placeZ + PRE_LIFT, 0, 0, 0, 1)
@@ -430,7 +471,7 @@ end
 -- Is the player's move visible to GE yet (veh:getPosition, the value the camera reads at
 -- cameraUpdate.lua:145)? Nearer the new position than the old one = moved.
 local function moveVisible(probe)
-  local veh = getPlayerVehicle(0)
+  local veh = playerVeh()
   local m = probe.playerId and probe.moved[probe.playerId]
   if not veh or not m or veh:getID() ~= probe.playerId then return true end
   local p = veh:getPosition()
@@ -528,7 +569,7 @@ end
 -- the ground (spawn.lua:494 getBBOnGround) and zeroes velocity (spawn.lua:533-534).
 -- The heading-preserving quat follows main.lua:1306.
 local function placePlayer(z)
-  local veh = getPlayerVehicle(0)
+  local veh = playerVeh()
   if not veh then return end
   local dir = veh:getDirectionVector()
   dir = vec3(dir.x, dir.y, 0)
@@ -821,9 +862,11 @@ end
 local function updatePlayer(dt)
   st.player = nil
   st.cam = cameraState()
-  local veh = getPlayerVehicle(0)
+  local veh = playerVeh()
   if not veh or not st.anchor then return end
   local p = veh:getPosition()
+  local function bad(n) return n ~= n or n == math.huge or n == -math.huge end
+  if bad(p.x) or bad(p.y) or bad(p.z) then return end -- EarthSync (BeamMP): an unstable car (NaN / inf position)
   local v = veh:getVelocity()
   local lat, lon = st.anchor:enuToGeodetic(p.x, p.y, p.z)
   st.player = { x = p.x, y = p.y, z = p.z, vx = v.x, vy = v.y, vz = v.z, lat = lat, lon = lon, dist = hypot(p.x, p.y),
@@ -864,7 +907,7 @@ end
 
 local function updateDropHold(dt)
   local pl = st.player
-  local veh = getPlayerVehicle(0)
+  local veh = playerVeh()
   if not pl or not veh then return end
   local box = nil
   if st.block then
@@ -997,7 +1040,11 @@ local function updateWorld(dt)
       -- re-asking every frame turns into a request storm
       if st.clock >= st.retryAt then
         st.retryAt = st.clock + rebase.RETRY_S
-        requestAnchor(st.anchor.lat, st.anchor.lon, 'resync', resyncHint())
+        if p.lat and (math.abs(p.lat - st.anchor.lat) > 1e-7 or math.abs(p.lon - st.anchor.lon) > 1e-7) then
+          requestAnchor(p.lat, p.lon, 'resync', adoptHint(p.lat, p.lon)) -- EarthSync (BeamMP)
+        else
+          requestAnchor(st.anchor.lat, st.anchor.lon, 'resync', resyncHint())
+        end
       end
     else
       action = 'resync'
@@ -1109,7 +1156,7 @@ local function updateGuard()
     g.mode = 'off'
     return
   end
-  local veh = getPlayerVehicle(0)
+  local veh = playerVeh()
   local box = guardBox()
   if not veh or not box then
     g.mode = 'off'
