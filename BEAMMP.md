@@ -8,18 +8,17 @@ until they're close again).
 
 ### Requirements
 
-1. **The same BeamNG.Earth version as the server.** The server's mod zip is named after its version:
-   `BeamNG_Earth_153_MP.zip` is **1.5.3-beta**. You need the BeamNG.Earth `.exe` of **exactly that version**
-   (`BeamNG.Earth-1.5.3-beta.exe` from the [releases](https://github.com/TecnaGamer/BeamNG.Earth/releases)), not an
-   older or newer one. The `.exe` runs the companion server that builds your world; a different version doesn't match
-   the server's mod.
+1. **The same BeamNG.Earth version as the server.** Download the `.exe` from the **same release** of this fork as
+   the server's mod zip ([releases](https://github.com/PapiCheesecake/BeamNG.Earth/releases)), not TecnaGamer's
+   `.exe` and not an older or newer one. The `.exe` runs the companion that builds your world (it also has the RHD
+   sign fix); a different version doesn't match the server's mod.
 2. **A `BeamNG Earth` folder** (anywhere, e.g. your Desktop) with exactly these two files in it:
    - the BeamNG.Earth `.exe` (its name must start with `BeamNG` and contain `Earth`)
    - [`server.bat`](beammp/player/server.bat) from this repo
 
    ```
    BeamNG Earth/
-   ├── BeamNG.Earth-1.5.3-beta.exe
+   ├── BeamNG.Earth-1.5.3-beta-mp.1.exe
    └── server.bat
    ```
 
@@ -42,17 +41,17 @@ until they're close again).
 ## Server owners
 
 1. Put the client mod zip in `Resources/Client/`. Build it from this branch with
-   `python beammp/build_client_zip.py` (it writes `beammp/dist/BeamNG_Earth_153_MP.zip`), or use the zip from the
+   `python beammp/build_client_zip.py` (it writes `beammp/dist/BeamNG_Earth_153_MP.zip`), or download it from the
    release.
-2. Copy [`beammp/Server/EarthSync/`](beammp/Server/EarthSync) to `Resources/Server/EarthSync/`.
+2. Copy [`beammp/Server/EarthSync/`](beammp/Server/EarthSync) to `Resources/Server/EarthSync/` (the release has it as
+   `EarthSync_server_plugin.zip`).
 3. In `ServerConfig.toml`, set the map to BeamNG.Earth's level:
    ```toml
    Map = "/levels/beamng_earth/info.json"
    ```
 4. Start the server.
 
-Tell your players which BeamNG.Earth version the server runs (the number in the zip's name), so they download the
-matching `.exe`.
+Tell your players which release the server runs, so they download the matching `.exe`.
 
 ## What EarthSync changes
 
