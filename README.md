@@ -1,6 +1,7 @@
 # BeamNG.Earth
 
-> **This is the BeamMP branch** (BeamNG.Earth 1.5.3-beta + EarthSync). To play on a BeamMP server, read
+> **PapiCheesecake's fork:** BeamNG.Earth 1.5.3-beta + **EarthSync** (BeamMP multiplayer) + the **RHD sign fix**
+> (signs and signals face their drivers in drive-on-the-left countries). To play on a BeamMP server, read
 > [BEAMMP.md](BEAMMP.md) first: you need the exact same BeamNG.Earth version as the server.
 
 A 1:1 scale, streamed Earth for [BeamNG.drive](https://www.beamng.com/): drive anywhere on the
